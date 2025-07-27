@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./deploy/Dockerfile
+      target: prod
+    image: knowledge_graph:${KNOWLEDGE_GRAPH_VERSION:-latest}
+    restart: always
+    env_file:
+    - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KNOWLEDGE_GRAPH_HOST: 0.0.0.0
+      KNOWLEDGE_GRAPH_DB_HOST: knowledge_graph-db
+      KNOWLEDGE_GRAPH_DB_PORT: 5432
+      KNOWLEDGE_GRAPH_DB_USER: knowledge_graph
+      KNOWLEDGE_GRAPH_DB_PASS: knowledge_graph
+      KNOWLEDGE_GRAPH_DB_BASE: knowledge_graph
+
+  db:
+    image: postgres:13.8-bullseye
+    hostname: knowledge_graph-db
+    environment:
+      POSTGRES_PASSWORD: "knowledge_graph"
+      POSTGRES_USER: "knowledge_graph"
+      POSTGRES_DB: "knowledge_graph"
+    volumes:
+    - knowledge_graph-db-data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: pg_isready -U knowledge_graph
+      interval: 2s
+      timeout: 3s
+      retries: 40
+
+
+
+volumes:
+  knowledge_graph-db-data:
+    name: knowledge_graph-db-data
